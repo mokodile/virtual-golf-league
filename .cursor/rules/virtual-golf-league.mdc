@@ -1,0 +1,15 @@
+---
+description: Virtual golf league — players, scoring, where the field lives, how to publish
+alwaysApply: true
+---
+
+# Virtual golf league
+
+Phone site for one shared round. Mokodile is index 16 in B Flight. RonDon is index 9 in A Flight. Ten fixed simulated players per flight.
+
+- Page files: `index.html`, `styles.css`, `app.js`. The field, indexes, and front/back nines live in `app.js`. Do not reshuffle those scores.
+- Place is net (gross minus index). Ties break by lower gross, then by name, so each player gets one place.
+- Par defaults to 72. Any other par shifts every simulated gross by (par − 72). A handicap round is par + index.
+- Shared round is the Firebase Realtime Database node `round`: `courseName`, `par`, `mokodileGross`, `rondonGross`. Web config is `firebase-config.js`.
+- This phone's player id is `localStorage` key `golf-player`.
+- Publish from `main` with GitHub Pages: https://mokodile.github.io/virtual-golf-league/

@@ -1,0 +1,23 @@
+{
+  "rules": {
+    "round": {
+      ".read": true,
+      ".write": "newData.hasChildren(['courseName', 'par'])",
+      "courseName": {
+        ".validate": "newData.isString() && newData.val().length <= 80"
+      },
+      "par": {
+        ".validate": "newData.isNumber() && newData.val() >= 60 && newData.val() <= 80"
+      },
+      "mokodileGross": {
+        ".validate": "newData.isNumber() && newData.val() >= 40 && newData.val() <= 160"
+      },
+      "rondonGross": {
+        ".validate": "newData.isNumber() && newData.val() >= 40 && newData.val() <= 160"
+      },
+      "$other": {
+        ".validate": false
+      }
+    }
+  }
+}

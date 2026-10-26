@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1e4d38">
+  <meta name="description" content="Mokodile and RonDon post one virtual golf round and see where they placed.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Virtual golf league</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231e4d38'/%3E%3Ccircle cx='16' cy='16' r='5.5' fill='none' stroke='%23f4f0e6' stroke-width='2'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,650&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="sheet">
+    <section id="picker">
+      <p class="kicker">Virtual league</p>
+      <h1>Who's playing?</h1>
+      <p class="lede">Tap your name. You post your own score, and you can both see the round.</p>
+      <div class="player-list">
+        <button class="player-btn" type="button" data-player="mokodile">
+          <span class="player-name">Mokodile</span>
+          <span class="player-meta">16 handicap · B Flight</span>
+        </button>
+        <button class="player-btn" type="button" data-player="rondon">
+          <span class="player-name">RonDon</span>
+          <span class="player-meta">9 handicap · A Flight</span>
+        </button>
+      </div>
+    </section>
+
+    <section id="round" hidden>
+      <header class="top">
+        <div>
+          <p class="kicker">Virtual league</p>
+          <h1 id="you-heading">Your round</h1>
+          <p class="you-meta" id="you-meta"></p>
+        </div>
+        <button class="text-btn" type="button" id="switch-player">Switch</button>
+      </header>
+      <p class="sync" id="sync"><span class="dot" id="sync-dot"></span> <span id="sync-text">Connecting…</span></p>
+
+      <section class="card" aria-labelledby="course-label">
+        <h2 id="course-label">Course</h2>
+        <div class="split">
+          <label>
+            <span>Name</span>
+            <input id="course" type="text" maxlength="80" autocomplete="off" placeholder="Today's course" enterkeyhint="done">
+          </label>
+          <label class="par-field">
+            <span>Par</span>
+            <input id="par" type="number" inputmode="numeric" min="60" max="80" value="72">
+          </label>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="score-label">
+        <h2 id="score-label">Your score</h2>
+        <label class="gross-label">
+          <span>Gross</span>
+          <input id="your-gross" class="gross-input" type="number" inputmode="numeric" min="40" max="160" placeholder="—">
+        </label>
+        <p class="score-readout" id="your-readout"></p>
+      </section>
+
+      <section class="card other-card" aria-labelledby="other-label">
+        <h2 id="other-label">Their score</h2>
+        <p class="other-name" id="other-name"></p>
+        <p class="other-score" id="other-score"></p>
+        <p class="score-readout" id="other-readout"></p>
+      </section>
+
+      <div id="board" aria-live="polite"></div>
+    </section>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
