@@ -4,7 +4,7 @@ const PLAYER_KEY = "golf-player";
 const ROUND_KEY = "golf-round";
 
 const PLAYERS = {
-  mokodile: { id: "mokodile", name: "Mokodile", index: 16, flight: "B" },
+  mokodile: { id: "mokodile", name: "Mokodile", index: 17, flight: "B" },
   rondon: { id: "rondon", name: "RonDon", index: 9, flight: "A" },
 };
 

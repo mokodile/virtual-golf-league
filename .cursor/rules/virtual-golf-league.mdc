@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Virtual golf league
 
-Phone site for one shared round. Mokodile is index 16 in B Flight. RonDon is index 9 in A Flight. Ten fixed simulated players per flight.
+Phone site for one shared round. Mokodile is index 17 in B Flight. RonDon is index 9 in A Flight. Ten fixed simulated players per flight.
 
 - Page files: `index.html`, `styles.css`, `app.js`. The field, indexes, and front/back nines live in `app.js`. Do not reshuffle those scores.
 - Place is net (gross minus index). Ties break by lower gross, then by name, so each player gets one place.
