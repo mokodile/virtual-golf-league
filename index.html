@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1e4d38">
-  <meta name="description" content="Mokodile and RonDon post one virtual golf round and see where they placed.">
+  <meta name="description" content="A virtual golf league. One round a week, added up for the month.">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <title>Virtual golf league</title>
@@ -19,17 +19,21 @@
     <section id="picker">
       <p class="kicker">Virtual league</p>
       <h1>Who's playing?</h1>
-      <p class="lede">Tap your name. You post your own score, and you can both see the round.</p>
-      <div class="player-list">
-        <button class="player-btn" type="button" data-player="mokodile">
-          <span class="player-name">Mokodile</span>
-          <span class="player-meta">17 handicap · B Flight</span>
-        </button>
-        <button class="player-btn" type="button" data-player="rondon">
-          <span class="player-name">RonDon</span>
-          <span class="player-meta">9 handicap · A Flight</span>
-        </button>
-      </div>
+      <p class="lede">Tap your name. One round each week, added up for the month.</p>
+      <div class="player-list" id="player-list"></div>
+      <form class="card add-card" id="add-player">
+        <h2>Add a player</h2>
+        <label>
+          <span>Name</span>
+          <input id="new-name" type="text" maxlength="40" autocomplete="off" placeholder="Name" required>
+        </label>
+        <label>
+          <span>Handicap</span>
+          <input id="new-handicap" type="number" inputmode="decimal" min="0" max="54" step="0.01" placeholder="17.4" required>
+        </label>
+        <button class="player-btn add-submit" type="submit">Join the league</button>
+        <p class="score-readout" id="add-note"></p>
+      </form>
     </section>
 
     <section id="round" hidden>
@@ -42,6 +46,12 @@
         <button class="text-btn" type="button" id="switch-player">Switch</button>
       </header>
       <p class="sync" id="sync"><span class="dot" id="sync-dot"></span> <span id="sync-text">Connecting…</span></p>
+      <div class="month-nav">
+        <button class="text-btn" type="button" id="month-prev">Earlier</button>
+        <p class="month-label" id="month-label"></p>
+        <button class="text-btn" type="button" id="month-next">Later</button>
+      </div>
+      <div class="weeks" id="weeks"></div>
 
       <section class="card" aria-labelledby="course-label">
         <h2 id="course-label">Course</h2>
@@ -59,18 +69,22 @@
 
       <section class="card" aria-labelledby="score-label">
         <h2 id="score-label">Your score</h2>
-        <label class="gross-label">
-          <span>Gross</span>
-          <input id="your-gross" class="gross-input" type="number" inputmode="numeric" min="40" max="160" placeholder="—">
-        </label>
+        <div class="score-split">
+          <label>
+            <span>Handicap</span>
+            <input id="handicap" type="number" inputmode="decimal" min="0" max="54" step="0.01">
+          </label>
+          <label class="gross-label">
+            <span>Gross</span>
+            <input id="your-gross" class="gross-input" type="number" inputmode="numeric" min="40" max="160" placeholder="—">
+          </label>
+        </div>
         <p class="score-readout" id="your-readout"></p>
       </section>
 
       <section class="card other-card" aria-labelledby="other-label">
-        <h2 id="other-label">Their score</h2>
-        <p class="other-name" id="other-name"></p>
-        <p class="other-score" id="other-score"></p>
-        <p class="score-readout" id="other-readout"></p>
+        <h2 id="other-label">The rest of the league</h2>
+        <div id="others"></div>
       </section>
 
       <div id="board" aria-live="polite"></div>

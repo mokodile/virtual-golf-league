@@ -229,6 +229,19 @@ input:focus {
 
 .flight h2 { margin-bottom: 2px; }
 
+.month-table th,
+.month-table td { padding: 8px 6px; }
+
+.month-table .pdetail { white-space: normal; }
+
+.month-table th:nth-child(1),
+.month-table td:nth-child(1),
+.month-table th:nth-child(n+3),
+.month-table td:nth-child(n+3) {
+  width: 1%;
+  white-space: nowrap;
+}
+
 .table-wrap {
   margin-top: 8px;
   overflow-x: auto;
@@ -275,6 +288,75 @@ tr:last-child td { border-bottom: 0; }
 tr.is-you td { background: var(--you); }
 
 .hint { margin: 8px 2px 0; }
+
+.month-nav {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.month-label {
+  margin: 0;
+  text-align: center;
+  font-weight: 600;
+}
+
+.weeks {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin-top: 10px;
+}
+
+.week-btn {
+  flex: 0 0 auto;
+  min-width: 4.6rem;
+  padding: 8px 10px;
+  text-align: left;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.week-btn small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.week-btn.is-selected {
+  background: var(--green);
+  color: #fffdf8;
+  border-color: var(--green);
+}
+
+.week-btn.is-selected small { color: #e7f3eb; }
+
+.add-card label + label { display: block; margin-top: 10px; }
+
+.add-submit { margin-top: 12px; }
+
+.other-row + .other-row {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.other-row p { margin: 0; }
+
+tr.is-behind td { color: var(--muted); }
+
+.score-split {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr;
+  gap: 10px;
+  align-items: end;
+}
+
+.gross-input { font-size: 2.4rem; }
 
 .waiting {
   margin-top: 16px;

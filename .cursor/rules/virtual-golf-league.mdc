@@ -5,11 +5,12 @@ alwaysApply: true
 
 # Virtual golf league
 
-Phone site for one shared round. Mokodile is index 17 in B Flight. RonDon is index 9 in A Flight. Ten fixed simulated players per flight.
+Phone site for a monthly league. One round per player each week. The month adds those net scores. Mokodile starts at index 17 in B Flight. RonDon starts at index 9 in A Flight. Ten fixed simulated players per flight.
 
-- Page files: `index.html`, `styles.css`, `app.js`. The field, indexes, and front/back nines live in `app.js`. Do not reshuffle those scores.
-- Place is net (gross minus index). Ties break by lower gross, then by name, so each player gets one place.
-- Par defaults to 72. Any other par shifts every simulated gross by (par − 72). A handicap round is par + index.
-- Shared round is the Firebase Realtime Database node `round`: `courseName`, `par`, `mokodileGross`, `rondonGross`. Web config is `firebase-config.js`.
+- Page files: `index.html`, `styles.css`, `app.js`. The simulated field and front/back nines live in `app.js`. Do not reshuffle those scores.
+- Place is net (gross minus handicap). Ties break by lower gross, then by name. The month ranks by average net among players who posted every elapsed week.
+- Index 12 and under is A Flight. Index 13 and over is B Flight. Handicaps are entered on the site, from 0 to 54.
+- Par defaults to 72. Any other par shifts every simulated gross by (par − 72).
+- Firebase nodes: `players/{id}` (`name`, `handicap`) and `weeks/{monday}` (`courseName`, `par`, `scores`). A Monday date is the week id. Web config is `firebase-config.js`.
 - This phone's player id is `localStorage` key `golf-player`.
 - Publish from `main` with GitHub Pages: https://mokodile.github.io/virtual-golf-league/
