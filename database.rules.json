@@ -19,7 +19,7 @@
     "weeks": {
       ".read": true,
       "$week": {
-        ".write": "$week.matches(/^\\d{4}-\\d{2}-\\d{2}$/) && newData.hasChildren(['courseName', 'par'])",
+        ".write": "$week.matches(/^\\d{4}-\\d{2}-\\d{2}$/) && (!newData.exists() || newData.hasChildren(['courseName', 'par']))",
         "courseName": {
           ".validate": "newData.isString() && newData.val().length <= 80"
         },

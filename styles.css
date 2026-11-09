@@ -144,10 +144,15 @@ h2 {
   border-radius: 16px;
 }
 
+.date-field { display: block; }
+
+.date-field + .score-readout { margin-top: 8px; }
+
 .split {
   display: grid;
   grid-template-columns: 1fr 88px;
   gap: 10px;
+  margin-top: 12px;
 }
 
 label span, .gross-label span {

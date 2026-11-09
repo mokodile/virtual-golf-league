@@ -36,12 +36,14 @@ const now = new Date();
 let viewYear = now.getFullYear();
 let viewMonth = now.getMonth();
 let selectedWeekId = null;
+let draft = null;
+let drafting = false;
 let you = null;
 let players = {};
 let weeks = {};
 let syncMode = "connecting";
 let remote = null;
-const dirty = { course: false, par: false, gross: false, handicap: false };
+const dirty = { course: false, par: false, gross: false, handicap: false, played: false };
 
 const $ = (id) => document.getElementById(id);
 
@@ -98,21 +100,48 @@ function elapsedWeeks() {
   return monthWeeks().filter((week) => (current ? week.start <= today : true));
 }
 
+function parseDate(iso) {
+  const [year, month, day] = iso.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function isDate(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) && isoDate(parseDate(value)) === value;
+}
+
+function mondayKey(iso) {
+  return isoDate(mondayOf(parseDate(iso)));
+}
+
+function roundsInMonth() {
+  return Object.keys(weeks)
+    .filter((id) => {
+      if (!isDate(id)) return false;
+      const date = parseDate(id);
+      return date.getFullYear() === viewYear && date.getMonth() === viewMonth;
+    })
+    .sort()
+    .map((id) => ({ id, start: parseDate(id) }));
+}
+
 function blankWeek() {
   return { courseName: "", par: 72, scores: {} };
 }
 
 function selectedWeek() {
-  return weeks[selectedWeekId] || blankWeek();
+  if (selectedWeekId && weeks[selectedWeekId]) return weeks[selectedWeekId];
+  return draft || blankWeek();
 }
 
 function ensureWeekSelection() {
-  const list = monthWeeks();
-  if (!list.length) return;
-  if (!list.some((week) => week.id === selectedWeekId)) {
-    const todayId = isoDate(mondayOf(new Date()));
-    selectedWeekId = (list.find((week) => week.id === todayId) || list[list.length - 1]).id;
-  }
+  if (drafting) return;
+  const rounds = roundsInMonth();
+  if (selectedWeekId && rounds.some((round) => round.id === selectedWeekId)) return;
+  selectedWeekId = rounds.length ? rounds[rounds.length - 1].id : "";
+  dirty.played = false;
+  dirty.course = false;
+  dirty.par = false;
+  dirty.gross = false;
 }
 
 function esc(value) {
@@ -150,8 +179,9 @@ function ordinal(n) {
   }
 }
 
-function weekLabel(week) {
-  return week.start.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+function dateLabel(iso) {
+  if (!iso) return "No date yet";
+  return parseDate(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 function monthLabel() {
@@ -247,24 +277,23 @@ function rankedField() {
 }
 
 function monthRows() {
-  const weeksInView = monthWeeks();
+  const rounds = roundsInMonth();
   const required = elapsedWeeks();
   return playerList().map((player) => {
     const nets = [];
-    for (const week of weeksInView) {
-      const gross = weeks[week.id] && weeks[week.id].scores[player.id];
-      const par = weeks[week.id] ? weeks[week.id].par : 72;
+    const covered = new Set();
+    for (const round of rounds) {
+      const gross = weeks[round.id] && weeks[round.id].scores[player.id];
+      const par = weeks[round.id] ? weeks[round.id].par : 72;
       if (!isGross(gross)) continue;
       nets.push({ net: gross - player.handicap, gross, par });
+      covered.add(mondayKey(round.id));
     }
-    const playedIds = new Set(
-      weeksInView.filter((week) => weeks[week.id] && isGross(weeks[week.id].scores[player.id])).map((week) => week.id)
-    );
-    const missing = required.filter((week) => !playedIds.has(week.id));
+    const missing = required.filter((week) => !covered.has(week.id));
     const total = nets.reduce((sum, row) => sum + row.net, 0);
     return {
       player,
-      played: playedIds.size,
+      played: required.filter((week) => covered.has(week.id)).length,
       required: required.length,
       missing,
       total,
@@ -307,7 +336,39 @@ async function write(path, payload) {
   }
 }
 
+function roundFromForm() {
+  const base = selectedWeek();
+  const par = Number($("par").value);
+  const next = {
+    courseName: $("course").value.slice(0, 80),
+    par: isPar(par) ? par : base.par,
+    scores: { ...base.scores },
+  };
+  const raw = $("your-gross").value.trim();
+  if (you && raw === "") delete next.scores[you];
+  else if (you && isGross(Number(raw))) next.scores[you] = Number(raw);
+  return next;
+}
+
+function weekTaken(date, exceptId) {
+  const key = mondayKey(date);
+  return Object.keys(weeks).find((id) => id !== exceptId && isDate(id) && mondayKey(id) === key) || "";
+}
+
+async function putWeek(id, week) {
+  const payload = { courseName: week.courseName, par: week.par };
+  for (const [pid, gross] of Object.entries(week.scores)) {
+    if (isGross(gross)) payload[`scores/${pid}`] = gross;
+  }
+  await remote.update(`weeks/${id}`, payload);
+}
+
 async function saveWeek(partialScores) {
+  if (!selectedWeekId) {
+    draft = roundFromForm();
+    $("date-note").textContent = "Enter the date you played.";
+    return;
+  }
   const week = selectedWeek();
   const next = {
     courseName: partialScores.courseName !== undefined ? partialScores.courseName : week.courseName,
@@ -337,6 +398,55 @@ async function saveWeek(partialScores) {
   } else {
     persistLocal();
   }
+  paintRound();
+}
+
+async function usePlayedDate(date) {
+  const note = $("date-note");
+  if (!isDate(date)) {
+    note.textContent = "Enter the date you played.";
+    return;
+  }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (parseDate(date) > today) {
+    note.textContent = "That date hasn't happened yet.";
+    return;
+  }
+  const taken = weekTaken(date, selectedWeekId);
+  if (taken) {
+    note.textContent = `That week already has ${dateLabel(taken)}. Open that round, or pick another date.`;
+    return;
+  }
+  const next = roundFromForm();
+  const fromId = selectedWeekId;
+  note.textContent = "";
+  draft = null;
+  drafting = false;
+  selectedWeekId = date;
+  const played = parseDate(date);
+  viewYear = played.getFullYear();
+  viewMonth = played.getMonth();
+  if (fromId && fromId !== date) {
+    const copy = { ...weeks, [date]: next };
+    delete copy[fromId];
+    weeks = copy;
+  } else {
+    weeks = { ...weeks, [date]: next };
+  }
+  if (remote) {
+    try {
+      await putWeek(date, next);
+      if (fromId && fromId !== date) await remote.update("weeks", { [fromId]: null });
+      syncMode = "live";
+    } catch {
+      syncMode = "error";
+      persistLocal();
+    }
+  } else {
+    persistLocal();
+  }
+  dirty.played = false;
   paintRound();
 }
 
@@ -494,20 +604,19 @@ function paintPicker() {
 
 function paintWeeks() {
   ensureWeekSelection();
-  const required = new Set(elapsedWeeks().map((week) => week.id));
   $("month-label").textContent = monthLabel();
   const today = new Date();
   const atCurrent = viewYear === today.getFullYear() && viewMonth === today.getMonth();
   $("month-next").disabled = atCurrent;
-  $("weeks").innerHTML = monthWeeks().map((week) => {
-    const posted = weeks[week.id] && isGross(weeks[week.id].scores[you]);
-    const due = required.has(week.id) && !posted;
-    const note = posted ? "Posted" : due ? "Due" : "Open";
-    return `<button class="week-btn${week.id === selectedWeekId ? " is-selected" : ""}" type="button" data-week="${week.id}">
-      ${esc(weekLabel(week))}
-      <small>${note}</small>
+  const chips = roundsInMonth().map((round) => {
+    const posted = weeks[round.id] && isGross(weeks[round.id].scores[you]);
+    return `<button class="week-btn${round.id === selectedWeekId ? " is-selected" : ""}" type="button" data-week="${round.id}">
+      ${esc(dateLabel(round.id))}
+      <small>${posted ? "Posted" : "Open"}</small>
     </button>`;
   }).join("");
+  const adding = drafting ? " is-selected" : "";
+  $("weeks").innerHTML = `${chips}<button class="week-btn${adding}" type="button" id="add-round">Add<small>a date</small></button>`;
 }
 
 function paintOthers() {
@@ -522,7 +631,7 @@ function paintOthers() {
     const score = isGross(gross) ? String(gross) : "—";
     const detail = isGross(gross)
       ? `Net ${formatNet(gross - player.handicap)} · ${toPar(gross, week.par)} · locked`
-      : "No round this week.";
+      : "No round on this date.";
     return `<div class="other-row">
       <p class="other-name">${esc(player.name)} · ${esc(formatNum(player.handicap))} handicap</p>
       <p class="other-score">${score}</p>
@@ -538,7 +647,9 @@ function paintRound() {
   const week = selectedWeek();
   $("you-heading").textContent = self.name;
   $("you-meta").textContent = `${formatNum(self.handicap)} handicap`;
-  $("score-label").textContent = `${self.name} this week`;
+  $("score-label").textContent = selectedWeekId ? `${self.name} · ${dateLabel(selectedWeekId)}` : self.name;
+  setIfIdle("played", selectedWeekId || "", "played");
+  if (!dirty.played && selectedWeekId) $("date-note").textContent = "";
   setIfIdle("course", week.courseName, "course");
   setIfIdle("par", String(week.par), "par");
   setIfIdle("handicap", formatNum(self.handicap), "handicap");
@@ -546,7 +657,7 @@ function paintRound() {
   setIfIdle("your-gross", isGross(yours) ? String(yours) : "", "gross");
   $("your-readout").textContent = isGross(yours)
     ? `Net ${formatNet(yours - self.handicap)} · ${toPar(yours, week.par)} to par`
-    : "One gross for this week. The month adds every week you post.";
+    : "Enter the date you played, then one gross. The month adds those nets.";
   paintWeeks();
   paintOthers();
   paintSync();
@@ -559,7 +670,7 @@ function paintBoard() {
   const posted = playerList().filter((player) => isGross(week.scores[player.id]));
   const month = monthTable();
   if (!week.courseName.trim() || !posted.length) {
-    board.innerHTML = `${month}<p class="waiting">This week's field fills in after the course and at least one gross are posted.</p>`;
+    board.innerHTML = `${month}<p class="waiting">The field fills in after the date, the course, and at least one gross are posted.</p>`;
     return;
   }
   const ranking = rankedField();
@@ -601,7 +712,7 @@ function monthTable() {
   const due = elapsedWeeks().length;
   return `<section class="flight">
     <h2>${esc(monthLabel())}</h2>
-    <p class="flight-meta">One round each week. ${due} week${due === 1 ? "" : "s"} so far. The total adds the net scores.</p>
+    <p class="flight-meta">One round each week, on the date you played. ${due} week${due === 1 ? "" : "s"} so far. The total adds the net scores.</p>
     <div class="table-wrap">
       <table class="month-table">
         <thead>
@@ -642,7 +753,7 @@ function fieldTable(ranking) {
     : `Simulated scores are the par 72 card shifted by ${shift > 0 ? `+${shift}` : shift}.`;
   return `<section class="flight">
     <h2>The field</h2>
-    <p class="flight-meta">${esc(weekLabel(monthWeeks().find((item) => item.id === selectedWeekId) || monthWeeks()[0]))}</p>
+    <p class="flight-meta">${esc(dateLabel(selectedWeekId))}</p>
     <div class="table-wrap">
       <table>
         <thead>
@@ -701,6 +812,7 @@ function showRound() {
   dirty.par = false;
   dirty.gross = false;
   dirty.handicap = false;
+  dirty.played = false;
   paintRound();
 }
 
@@ -712,10 +824,25 @@ function shiftMonth(delta) {
   viewYear = next.getFullYear();
   viewMonth = next.getMonth();
   selectedWeekId = null;
+  draft = null;
+  drafting = false;
   dirty.course = false;
   dirty.par = false;
   dirty.gross = false;
+  dirty.played = false;
   if (you) paintRound();
+}
+
+function startDraft() {
+  drafting = true;
+  selectedWeekId = "";
+  draft = blankWeek();
+  dirty.course = false;
+  dirty.par = false;
+  dirty.gross = false;
+  dirty.played = false;
+  paintRound();
+  $("played").focus();
 }
 
 $("player-list").addEventListener("click", (event) => {
@@ -762,23 +889,47 @@ $("switch-player").addEventListener("click", () => {
 });
 
 $("weeks").addEventListener("click", (event) => {
+  if (event.target.closest("#add-round")) {
+    startDraft();
+    return;
+  }
   const button = event.target.closest("[data-week]");
   if (!button) return;
   selectedWeekId = button.dataset.week;
+  draft = null;
+  drafting = false;
   dirty.course = false;
   dirty.par = false;
   dirty.gross = false;
+  dirty.played = false;
   paintRound();
 });
 
 $("month-prev").addEventListener("click", () => shiftMonth(-1));
 $("month-next").addEventListener("click", () => shiftMonth(1));
 
+async function onPlayed() {
+  const value = $("played").value;
+  if (!value) {
+    $("date-note").textContent = "Enter the date you played.";
+    return;
+  }
+  if (value === selectedWeekId) {
+    dirty.played = false;
+    $("date-note").textContent = "";
+    return;
+  }
+  await usePlayedDate(value);
+}
+
 const saveCourse = debounce(onCourse, 400);
 const savePar = debounce(onPar, 400);
 const saveGross = debounce(onGross, 400);
 const saveHcp = debounce(onHandicap, 400);
+const savePlayed = debounce(onPlayed, 300);
 
+$("played").addEventListener("input", () => { dirty.played = true; savePlayed(); });
+$("played").addEventListener("change", () => { dirty.played = true; savePlayed(); });
 $("course").addEventListener("input", () => { dirty.course = true; saveCourse(); });
 $("par").addEventListener("input", () => { dirty.par = true; savePar(); });
 $("your-gross").addEventListener("input", () => { dirty.gross = true; saveGross(); });
