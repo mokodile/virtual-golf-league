@@ -8,38 +8,29 @@ const SEED = {
   rondon: { name: "RonDon", handicap: 9 },
 };
 
-// Grosses are the par 72 card. Front + back = gross.
-const FIELD = {
-  A: [
-    { name: "Mara Ellison", index: 7, front: 38, back: 38 },
-    { name: "Chris Daley", index: 8, front: 40, back: 39 },
-    { name: "Priya Shah", index: 9, front: 41, back: 40 },
-    { name: "Lena Cho", index: 10, front: 42, back: 41 },
-    { name: "Owen Briggs", index: 6, front: 39, back: 41 },
-    { name: "Nora Voss", index: 12, front: 44, back: 42 },
-    { name: "Samir Adeyemi", index: 11, front: 41, back: 45 },
-    { name: "Jordan Hale", index: 9, front: 43, back: 42 },
-    { name: "Elliot Park", index: 8, front: 44, back: 42 },
-    { name: "Devon Ruiz", index: 11, front: 49, back: 43 },
-  ],
-  B: [
-    { name: "Andre Brooks", index: 14, front: 41, back: 42 },
-    { name: "Keisha Lang", index: 15, front: 43, back: 43 },
-    { name: "Tomasz Wojcik", index: 16, front: 44, back: 44 },
-    { name: "Riley Chen", index: 13, front: 42, back: 45 },
-    { name: "Harper Quinn", index: 17, front: 46, back: 45 },
-    { name: "Malik Foster", index: 18, front: 47, back: 46 },
-    { name: "Casey Nguyen", index: 19, front: 48, back: 47 },
-    { name: "Sofia Marin", index: 15, front: 45, back: 47 },
-    { name: "Ben Okonkwo", index: 16, front: 46, back: 48 },
-    { name: "Jules Perrin", index: 17, front: 53, back: 47 },
-  ],
-};
-
-const FLIGHTS = {
-  A: { title: "A Flight", meta: "Index 12 and under" },
-  B: { title: "B Flight", meta: "Index 13 and over" },
-};
+// Grosses are the par 72 card. Front + back = gross. One field, ranked by net.
+const FIELD = [
+  { name: "Mara Ellison", index: 7, front: 38, back: 38 },
+  { name: "Chris Daley", index: 8, front: 40, back: 39 },
+  { name: "Priya Shah", index: 9, front: 41, back: 40 },
+  { name: "Lena Cho", index: 10, front: 42, back: 41 },
+  { name: "Owen Briggs", index: 6, front: 39, back: 41 },
+  { name: "Nora Voss", index: 12, front: 44, back: 42 },
+  { name: "Samir Adeyemi", index: 11, front: 41, back: 45 },
+  { name: "Jordan Hale", index: 9, front: 43, back: 42 },
+  { name: "Elliot Park", index: 8, front: 44, back: 42 },
+  { name: "Devon Ruiz", index: 11, front: 49, back: 43 },
+  { name: "Andre Brooks", index: 14, front: 41, back: 42 },
+  { name: "Keisha Lang", index: 15, front: 43, back: 43 },
+  { name: "Tomasz Wojcik", index: 16, front: 44, back: 44 },
+  { name: "Riley Chen", index: 13, front: 42, back: 45 },
+  { name: "Harper Quinn", index: 17, front: 46, back: 45 },
+  { name: "Malik Foster", index: 18, front: 47, back: 46 },
+  { name: "Casey Nguyen", index: 19, front: 48, back: 47 },
+  { name: "Sofia Marin", index: 15, front: 45, back: 47 },
+  { name: "Ben Okonkwo", index: 16, front: 46, back: 48 },
+  { name: "Jules Perrin", index: 17, front: 53, back: 47 },
+];
 
 const now = new Date();
 let viewYear = now.getFullYear();
@@ -53,10 +44,6 @@ let remote = null;
 const dirty = { course: false, par: false, gross: false, handicap: false };
 
 const $ = (id) => document.getElementById(id);
-
-function flightFor(handicap) {
-  return handicap <= 12 ? "A" : "B";
-}
 
 function isGross(n) {
   return Number.isInteger(n) && n >= 40 && n <= 160;
@@ -239,11 +226,10 @@ function shiftEntry(entry, par) {
   };
 }
 
-function rankedFlight(flightId) {
+function rankedField() {
   const week = selectedWeek();
-  const rows = FIELD[flightId].map((entry) => shiftEntry(entry, week.par));
+  const rows = FIELD.map((entry) => shiftEntry(entry, week.par));
   for (const player of playerList()) {
-    if (flightFor(player.handicap) !== flightId) continue;
     const gross = week.scores[player.id];
     if (!isGross(gross)) continue;
     rows.push({
@@ -501,7 +487,7 @@ function paintPicker() {
   list.innerHTML = playerList().map((player) => `
     <button class="player-btn" type="button" data-player="${esc(player.id)}">
       <span class="player-name">${esc(player.name)}</span>
-      <span class="player-meta">${esc(formatNum(player.handicap))} handicap · ${flightFor(player.handicap)} Flight</span>
+      <span class="player-meta">${esc(formatNum(player.handicap))} handicap</span>
     </button>
   `).join("");
 }
@@ -538,7 +524,7 @@ function paintOthers() {
       ? `Net ${formatNet(gross - player.handicap)} · ${toPar(gross, week.par)} · locked`
       : "No round this week.";
     return `<div class="other-row">
-      <p class="other-name">${esc(player.name)} · ${esc(formatNum(player.handicap))} · ${flightFor(player.handicap)} Flight</p>
+      <p class="other-name">${esc(player.name)} · ${esc(formatNum(player.handicap))} handicap</p>
       <p class="other-score">${score}</p>
       <p class="score-readout">${detail}</p>
     </div>`;
@@ -551,7 +537,7 @@ function paintRound() {
   const self = players[you];
   const week = selectedWeek();
   $("you-heading").textContent = self.name;
-  $("you-meta").textContent = `${formatNum(self.handicap)} handicap · ${flightFor(self.handicap)} Flight`;
+  $("you-meta").textContent = `${formatNum(self.handicap)} handicap`;
   $("score-label").textContent = `${self.name} this week`;
   setIfIdle("course", week.courseName, "course");
   setIfIdle("par", String(week.par), "par");
@@ -573,18 +559,18 @@ function paintBoard() {
   const posted = playerList().filter((player) => isGross(week.scores[player.id]));
   const month = monthTable();
   if (!week.courseName.trim() || !posted.length) {
-    board.innerHTML = `${month}<p class="waiting">This week's flights fill in after the course and at least one gross are posted.</p>`;
+    board.innerHTML = `${month}<p class="waiting">This week's field fills in after the course and at least one gross are posted.</p>`;
     return;
   }
+  const ranking = rankedField();
   const places = posted.map((player) => {
-    const row = rankedFlight(flightFor(player.handicap)).find((item) => item.name === player.name);
+    const row = ranking.find((item) => item.name === player.name);
     return `<article class="place-card${player.id === you ? " is-you" : ""}">
       <span class="place-num">${ordinal(row.place)}</span>
-      <span>${esc(player.name)} · ${flightFor(player.handicap)} Flight</span>
+      <span>${esc(player.name)}</span>
     </article>`;
   }).join("");
-  const flights = ["A", "B"].map((flightId) => flightTable(flightId)).join("");
-  board.innerHTML = `${month}<div class="places">${places}</div><div class="flights">${flights}</div>`;
+  board.innerHTML = `${month}<div class="places">${places}</div>${fieldTable(ranking)}`;
 }
 
 function monthTable() {
@@ -634,10 +620,9 @@ function monthTable() {
   </section>`;
 }
 
-function flightTable(flightId) {
-  const info = FLIGHTS[flightId];
+function fieldTable(ranking) {
   const week = selectedWeek();
-  const rows = rankedFlight(flightId).map((row) => {
+  const rows = ranking.map((row) => {
     const nines = row.front == null
       ? `${formatNum(row.index)} hcp`
       : `${formatNum(row.index)} hcp · ${row.front}/${row.back}`;
@@ -656,8 +641,8 @@ function flightTable(flightId) {
     ? "Rating 72.0, slope 113, so the handicap is the course handicap."
     : `Simulated scores are the par 72 card shifted by ${shift > 0 ? `+${shift}` : shift}.`;
   return `<section class="flight">
-    <h2>${info.title}</h2>
-    <p class="flight-meta">${info.meta} · ${esc(weekLabel(monthWeeks().find((item) => item.id === selectedWeekId) || monthWeeks()[0]))}</p>
+    <h2>The field</h2>
+    <p class="flight-meta">${esc(weekLabel(monthWeeks().find((item) => item.id === selectedWeekId) || monthWeeks()[0]))}</p>
     <div class="table-wrap">
       <table>
         <thead>
